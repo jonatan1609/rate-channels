@@ -1,0 +1,4 @@
+Pyrogram~=0.17.1-async
+pyromod~=0.2.1
+pony~=0.7.13
+sanic~=20.3.0
