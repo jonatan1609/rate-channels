@@ -2,3 +2,8 @@
 */__pycache__
 venv
 *.sql
+*.session
+*/__pycache__
+venv
+*.sql
+.idea
