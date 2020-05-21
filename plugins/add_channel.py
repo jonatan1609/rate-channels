@@ -1,18 +1,21 @@
 from pyrogram import (
     Client,
     Filters,
-    CallbackQuery
+    CallbackQuery,
+    ReplyKeyboardRemove,
+    KeyboardButton,
+    ReplyKeyboardMarkup
 )
 
 from .start_handler import start_handler
-from .utils import add_tg
+from .utils import add_tg, get_code
 from pyrogram.errors import UsernameNotOccupied, UsernameInvalid, PeerIdInvalid
 
 
 @Client.on_callback_query(Filters.callback_data('channel'))
-async def add_bot(_client: Client,
-                  callback: CallbackQuery,
-                  message="What's the username of your channel?"):
+async def add_channel(_client: Client,
+                      callback: CallbackQuery,
+                      message="What's the username of your channel?"):
     await callback.message.delete()
     username = await _client.ask(callback.message.chat.id, message) # noqa
     if str(username.text) == '/start':
@@ -20,7 +23,7 @@ async def add_bot(_client: Client,
     try:
         username = str(username.text)
         if username.isdigit():
-            return (await add_bot(
+            return (await add_channel(
                 _client,
                 callback,
                 "Do not send an ID, only username. try again.\n"
@@ -30,19 +33,38 @@ async def add_bot(_client: Client,
     except (IndexError, ValueError, KeyError,
             UsernameNotOccupied, UsernameInvalid, PeerIdInvalid) as e:
 
-        return (await add_bot(_client, callback,
-                              ("username not exist. try again.\n"
-                               if not isinstance(e, IndexError) else
-                               'Something went wrong, try again\n') +
-                              "What's the username of your channel?"
-                              )
+        return (await add_channel(_client, callback,
+                                  ("username not exist. try again.\n"
+                                   if not isinstance(e, IndexError) else
+                                   'Something went wrong, try again\n') +
+                                  "What's the username of your channel?"
+                                  )
                 )
 
     if group.type != 'channel':
-        await add_bot(_client, callback,
-                      "This username not belong to a channel, try again.\n"
-                      "What's the username of your channel?")
+        await add_channel(_client, callback,
+                          "This username not belong to a channel, try again.\n"
+                          "What's the username of your channel?")
     else:
+        code = get_code()
+        await _client.ask(
+            callback.message.chat.id,
+            "How to authorise the channel:\n"
+            "Go to 'manage channel'\n"    
+            f"Then add this code: `{code}` to channel description, then press 'Done'\n"
+            "[Then remove this from your channel description]",
+            timeout=200,
+            filters=Filters.regex('Done'),
+            reply_markup=ReplyKeyboardMarkup([
+                [KeyboardButton('Done')]
+            ], resize_keyboard=True)
+        )
+        bot = await _client.get_chat(username)
+        if code in bot.description:
+            await callback.message.reply('OK!', reply_markup=ReplyKeyboardRemove())
+        else:
+            await callback.message.reply('Code not found! try again', reply_markup=ReplyKeyboardRemove())
+            return await add_channel(_client, callback)
         add = add_tg(
             group.id,
             group.title,

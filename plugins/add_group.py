@@ -1,11 +1,11 @@
 from pyrogram import (
     Client,
     Filters,
-    CallbackQuery
+    CallbackQuery, ReplyKeyboardRemove, KeyboardButton, ReplyKeyboardMarkup
 )
 
 from .start_handler import start_handler
-from .utils import add_tg
+from .utils import add_tg, get_code
 from pyrogram.errors import UsernameNotOccupied, UsernameInvalid, PeerIdInvalid
 
 
@@ -43,6 +43,26 @@ async def add_bot(_client: Client,
                       "This username not belong to a group, try again.\n"
                       "What's the username of your group?")
     else:
+        code = get_code()
+        await _client.ask(
+            callback.message.chat.id,
+            "How to authorise the group:\n"
+            "Go to 'manage group'\n"
+            f"Then add this code: `{code}` to your group description,\n"
+            f"then press 'Done'\n"
+            "[Then remove this from your group description]",
+            timeout=200,
+            filters=Filters.regex('Done'),
+            reply_markup=ReplyKeyboardMarkup([
+                [KeyboardButton('Done')]
+            ], resize_keyboard=True)
+        )
+        bot = await _client.get_chat(username)
+        if code in bot.description:
+            await callback.message.reply('OK!', reply_markup=ReplyKeyboardRemove())
+        else:
+            await callback.message.reply('Code not found! try again', reply_markup=ReplyKeyboardRemove())
+            return await add_bot(_client, callback)
         add = add_tg(
             group.id,
             group.title,

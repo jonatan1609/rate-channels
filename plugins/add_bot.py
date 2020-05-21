@@ -1,9 +1,12 @@
 from pyrogram import (
     Client,
     Filters,
-    CallbackQuery
+    CallbackQuery,
+    ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
+    KeyboardButton
 )
-from .utils import add_tg
+from .utils import add_tg, get_code
 from .start_handler import start_handler
 from pyrogram.errors import UsernameNotOccupied, UsernameInvalid, PeerIdInvalid
 
@@ -41,6 +44,26 @@ async def add_bot(_client: Client, callback: CallbackQuery, message="What's the 
                       "This username not belong to a bot, try again.\n"
                       "What's the username of your bot?")
     else:
+        code = get_code()
+        await _client.ask(
+            callback.message.chat.id,
+            "How to authorise the bot:\n"
+            "Go to BotFather, then browse to your bot,\n"
+            "then 'Edit bot' -> 'Edit About'\n"
+            f"And add this code: `{code}` then press 'Done'\n"
+            "[Then remove this from your bot description]",
+            timeout=200,
+            filters=Filters.regex('Done'),
+            reply_markup=ReplyKeyboardMarkup([
+                [KeyboardButton('Done')]
+            ], resize_keyboard=True)
+        )
+        bot = await _client.get_chat(username)
+        if code in bot.description:
+            await callback.message.reply('OK!', reply_markup=ReplyKeyboardRemove())
+        else:
+            await callback.message.reply('Code not found! try again', reply_markup=ReplyKeyboardRemove())
+            return await add_bot(_client, callback)
         add = add_tg(
             bot.id,
             bot.first_name + (bot.last_name or ''),

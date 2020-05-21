@@ -1,6 +1,10 @@
 from pony.orm import db_session, select
 from .database import TGModel
 from pyrogram import InlineKeyboardButton, InlineKeyboardMarkup
+from random import choices, randint
+from string import ascii_letters, digits
+
+
 show_by = {
     'By username': 'u',
     'By name': 'n'
@@ -82,3 +86,7 @@ def already_rate(user: int, obj_id):
     if obj is None:
         return "not found"
     return user in obj.raters
+
+
+def get_code():
+    return ''.join(choices(ascii_letters + digits, k=randint(5, 15)))
