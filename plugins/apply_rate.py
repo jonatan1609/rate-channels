@@ -7,6 +7,7 @@ from pyrogram import (
     ReplyKeyboardRemove
 )
 from .utils import accept_rate, get_info
+from html import escape
 
 
 @Client.on_callback_query(Filters.create(lambda _, c: c.data.startswith('rate')))
@@ -38,9 +39,10 @@ async def rate(_client: Client, callback: CallbackQuery):
         await review.delete()
         await callback.message.reply("Thanks!")
         return await _client.send_message(
-            info.owner, "Review from"
+            info.owner, "Review from "
                         f" [{callback.from_user.first_name}]"
-                        f"(tg://user?id={callback.from_user.id})\n\n"
+                        f"(tg://user?id={callback.from_user.id}) "
+                        f"about [this bot](tg://user?id={info.id})\n\n"
                         f"{str(review.text)}"
         )
     else:
